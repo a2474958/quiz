@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>알록달록 우리말 퀴즈 왕!</title>
+    
+    <!-- 모바일 홈 화면 추가 시 앱처럼 실행되도록 설정 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="우리말퀴즈">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3426/3426653.png">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Jua / Nanum Gothic) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Jua', sans-serif;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #a1c4fd 100%);
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        .bounce-title {
+            animation: bounce 1.5s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .card-pop {
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Shake animation for wrong answers */
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+
+        /* Custom Quiz Cards */
+        .btn-choice {
+            transition: all 0.2s ease;
+            box-shadow: 0 8px 0 rgba(0, 0, 0, 0.15);
+        }
+        .btn-choice:active {
+            transform: translateY(4px);
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.15);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 4px solid #ffffff;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen justify-between items-center p-4 sm:p-6 text-gray-800">
+
+    <!-- 헤더 영역 -->
+    <header class="w-full max-w-2xl text-center my-4">
+        <div class="inline-block bg-yellow-300 border-4 border-yellow-500 rounded-full px-6 py-2 shadow-lg mb-2 transform -rotate-1">
+            <span class="text-xl sm:text-2xl text-yellow-900 font-bold">✨ 신나는 우리말 탐험대 ✨</span>
+        </div>
+        <h1 class="text-4xl sm:text-5xl font-black text-white drop-shadow-[0_4px_4px_rgba(0,0,0,0.3)] bounce-title tracking-wider">
+            알록달록 우리말 퀴즈 왕! 👑
+        </h1>
+    </header>
+
+    <!-- 메인 컨테이너 -->
+    <main class="w-full max-w-2xl flex-1 flex flex-col justify-center items-center">
+        
+        <!-- 1. 시작 화면 -->
+        <div id="start-screen" class="glass-card rounded-3xl p-8 w-full text-center shadow-2xl card-pop border-4 border-pink-300">
+            <div class="text-6xl mb-4">🎨📚✏️</div>
+            <h2 class="text-3xl font-bold text-pink-600 mb-3">우리말 퀴즈에 오신 것을 환영해요!</h2>
+            <p class="text-gray-600 text-lg sm:text-xl mb-6 leading-relaxed">
+                재미있는 맞춤법, 속담, 순우리말 퀴즈를 풀고<br>
+                최고의 <span class="text-indigo-600 font-bold">‘우리말 박사님’</span>이 되어보세요!
+            </p>
+
+            <!-- 카테고리 선택 버튼 -->
+            <div class="mb-8">
+                <p class="text-sm font-bold text-gray-500 mb-3">퀴즈 난이도/주제를 선택해보세요:</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <button onclick="selectCategory('all')" id="cat-all" class="cat-btn bg-purple-500 hover:bg-purple-600 text-white p-3 rounded-2xl text-lg font-bold border-b-4 border-purple-700 transition ring-4 ring-purple-200">
+                        🌈 전체 랜덤
+                    </button>
+                    <button onclick="selectCategory('spelling')" id="cat-spelling" class="cat-btn bg-blue-400 hover:bg-blue-500 text-white p-3 rounded-2xl text-lg font-bold border-b-4 border-blue-600 transition opacity-70">
+                        ✏️ 알쏭달쏭 맞춤법
+                    </button>
+                    <button onclick="selectCategory('idiom')" id="cat-idiom" class="cat-btn bg-emerald-400 hover:bg-emerald-500 text-white p-3 rounded-2xl text-lg font-bold border-b-4 border-emerald-600 transition opacity-70">
+                        💡 재미있는 속담
+                    </button>
+                </div>
+            </div>
+
+            <!-- 시작 버튼 -->
+            <button onclick="startGame()" class="w-full bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 hover:from-pink-600 hover:to-yellow-600 text-white text-2xl font-black py-4 px-8 rounded-full shadow-lg border-b-4 border-red-700 active:translate-y-1 transform transition duration-150">
+                🚀 퀴즈 시작하기! 🚀
+            </button>
+        </div>
+
+        <!-- 2. 퀴즈 진행 화면 -->
+        <div id="quiz-screen" class="hidden glass-card rounded-3xl p-6 sm:p-8 w-full shadow-2xl relative border-4 border-indigo-200">
+            <!-- 상단 상태 바 -->
+            <div class="flex justify-between items-center mb-6 bg-indigo-50 p-4 rounded-2xl border-2 border-indigo-100">
+                <div class="flex items-center gap-2">
+                    <span class="bg-indigo-500 text-white px-3 py-1 rounded-full text-sm font-bold">문제</span>
+                    <span id="current-question-num" class="text-2xl font-black text-indigo-700">1</span>
+                    <span class="text-gray-400 text-lg">/ <span id="total-questions-num">10</span></span>
+                </div>
+                <!-- 점수 표시 -->
+                <div class="flex items-center gap-2 bg-yellow-100 px-4 py-1.5 rounded-full border-2 border-yellow-300">
+                    <span class="text-xl">⭐</span>
+                    <span id="score-display" class="text-2xl font-black text-yellow-700">0</span>
+                    <span class="text-sm text-yellow-600 font-bold">점</span>
+                </div>
+            </div>
+
+            <!-- 프로그레스 바 -->
+            <div class="w-full bg-gray-200 h-3 rounded-full mb-6 overflow-hidden">
+                <div id="progress-bar" class="bg-gradient-to-r from-teal-400 to-blue-500 h-full w-0 transition-all duration-300"></div>
+            </div>
+
+            <!-- 문제 카테고리 태그 -->
+            <div class="mb-2 text-center">
+                <span id="question-category" class="inline-block bg-pink-100 text-pink-700 text-sm font-bold px-3 py-1 rounded-full border border-pink-200">
+                    맞춤법
+                </span>
+            </div>
+
+            <!-- 문제 텍스트 -->
+            <div class="text-center my-6">
+                <h3 id="question-text" class="text-2xl sm:text-3xl font-extrabold text-gray-800 leading-snug">
+                    질문이 들어갈 자리입니다.
+                </h3>
+            </div>
+
+            <!-- 보기 선택 영역 -->
+            <div id="options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-6">
+                <!-- 자바스크립트로 보기 버튼 생성 -->
+            </div>
+
+            <!-- 정답 해설 및 다음 버튼 메세지 상자 -->
+            <div id="feedback-box" class="hidden mt-6 p-4 rounded-2xl text-center border-2 card-pop">
+                <p id="feedback-result" class="text-2xl font-black mb-1"></p>
+                <p id="feedback-explanation" class="text-lg text-gray-700 font-medium mb-4"></p>
+                <button onclick="nextQuestion()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full shadow-md text-lg active:scale-95 transition">
+                    다음 문제로 ➔
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. 결과 화면 -->
+        <div id="result-screen" class="hidden glass-card rounded-3xl p-8 w-full text-center shadow-2xl card-pop border-4 border-yellow-300">
+            <div id="result-emoji" class="text-7xl mb-4">🏆</div>
+            <h2 class="text-3xl font-black text-indigo-700 mb-2">퀴즈 완료!</h2>
+            <p id="result-subtitle" class="text-xl text-gray-600 mb-6">정말 대단해요!</p>
+
+            <!-- 점수 및 통계 카드 -->
+            <div class="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-2xl p-6 mb-6">
+                <p class="text-gray-500 text-lg mb-1">최종 점수</p>
+                <p class="text-5xl font-black text-orange-500 mb-4"><span id="final-score">0</span><span class="text-2xl text-gray-600"> / 100점</span></p>
+                
+                <div class="flex justify-around border-t border-yellow-200 pt-4 text-center">
+                    <div>
+                        <span class="block text-gray-400 text-sm">맞힌 문제</span>
+                        <span id="correct-count" class="text-2xl font-bold text-green-600">0</span>
+                    </div>
+                    <div>
+                        <span class="block text-gray-400 text-sm">틀린 문제</span>
+                        <span id="wrong-count" class="text-2xl font-bold text-red-500">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 칭찬 메시지 -->
+            <div class="bg-white p-4 rounded-2xl border-2 border-indigo-100 mb-8 shadow-inner">
+                <p id="praise-message" class="text-lg font-bold text-indigo-800">
+                    최고의 우리말 박사님이시네요!
+                </p>
+            </div>
+
+            <!-- 다시하기 버튼 -->
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button onclick="restartGame()" class="flex-1 bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-500 hover:to-teal-600 text-white font-black py-4 px-6 rounded-full shadow-lg text-xl border-b-4 border-teal-700 active:translate-y-1 transition">
+                    🔄 다시 도전하기
+                </button>
+                <button onclick="goHome()" class="flex-1 bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white font-black py-4 px-6 rounded-full shadow-lg text-xl border-b-4 border-gray-700 active:translate-y-1 transition">
+                    🏠 처음으로
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 하단 푸터 -->
+    <footer class="w-full text-center py-4 text-white/80 font-bold text-sm">
+        <p>🎉 할머니·할아버지가 응원하는 신나는 우리말 공부! 🎉</p>
+    </footer>
+
+    <!-- 웹 오디오 API 기반 효과음 재생 함수 -->
+    <script>
+        // 별도 라이브러리 없이 간단한 효과음을 만들어내는 Web Audio 헬퍼
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'correct') {
+                // 딩동댕 긍정음 (도-미-솔-도)
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+                osc.frequency.setValueAtTime(1046.50, now + 0.3); // C6
+                
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                
+                osc.start(now);
+                osc.stop(now + 0.6);
+            } else if (type === 'wrong') {
+                // 부부- 땡 음 (저음 두 번)
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.setValueAtTime(140, now + 0.15);
+                
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                
+                osc.start(now);
+                osc.stop(now + 0.4);
+            } else if (type === 'click') {
+                // 톡 소리
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, now);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                
+                osc.start(now);
+                osc.stop(now + 0.05);
+            } else if (type === 'win') {
+                // 승리 팡파레
+                const notes = [523.25, 659.25, 783.99, 1046.50, 880, 1046.50];
+                const times = [0, 0.12, 0.24, 0.36, 0.5, 0.65];
+                notes.forEach((freq, i) => {
+                    const noteOsc = audioCtx.createOscillator();
+                    const noteGain = audioCtx.createGain();
+                    noteOsc.type = 'triangle';
+                    noteOsc.frequency.setValueAtTime(freq, now + times[i]);
+                    noteGain.gain.setValueAtTime(0.25, now + times[i]);
+                    noteGain.gain.exponentialRampToValueAtTime(0.01, now + times[i] + 0.25);
+                    noteOsc.connect(noteGain);
+                    noteGain.connect(audioCtx.destination);
+                    noteOsc.start(now + times[i]);
+                    noteOsc.stop(now + times[i] + 0.25);
+                });
+            }
+        }
+    </script>
+
+    <script>
+        // 초등학생용 우리말 퀴즈 데이터베이스
+        const quizDatabase = [
+            // 맞춤법 퀴즈
+            {
+                category: "맞춤법",
+                type: "spelling",
+                question: "어느 것이 올바른 표현일까요?<br>\"오늘 저녁은 진짜 <span class='text-pink-600'>[ ? ]</span> 고기다!\"",
+                options: ["맛있는", "맛있는게", "맛있어"],
+                answer: 0,
+                explanation: "'맛있는'이 바른 형용사 활용 표현이에요!"
+            },
+            {
+                category: "맞춤법",
+                type: "spelling",
+                question: "친구가 맛있는 과자를 주었어요.<br>\"정말 <span class='text-pink-600'>[ ? ]</span> 고마워!\"",
+                options: ["너에게", "너 한테", "너에개"],
+                answer: 0,
+                explanation: "'너에게'가 표준어 맞춤법에 맞는 표현입니다."
+            },
+            {
+                category: "맞춤법",
+                type: "spelling",
+                question: "어느 표기가 맞을까요?<br>\"숙제를 다 하고 나니 마음이 <span class='text-pink-600'>[ ? ]</span>!\"",
+                options: ["개운하다", "게운하다"],
+                answer: 0,
+                explanation: "기분이 상쾌하고 가벼울 때는 '개운하다'라고 써요."
+            },
+            {
+                category: "맞춤법",
+                type: "spelling",
+                question: "비가 올 때 쓰는 물건은?<br>\"비가 오니까 <span class='text-pink-600'>[ ? ]</span>을 챙기자!\"",
+                options: ["우산", "유산"],
+                answer: 0,
+                explanation: "비(雨)를 막는 우산이 맞습니다."
+            },
+            {
+                category: "맞춤법",
+                type: "spelling",
+                question: "아침에 일어났을 때 쓰는 인사는?<br>\"안녕히 <span class='text-pink-600'>[ ? ]</span>!\"",
+                options: ["주무셨어요", "주무셨어여"],
+                answer: 0,
+                explanation: "'주무셨어요'가 올바른 존댓말 표현이에요."
+            },
+            {
+                category: "맞춤법",
+                type: "spelling",
+                question: "공부할 때 자주 틀리는 말!<br>\"나는 내일 할 일을 <span class='text-pink-600'>[ ? ]</span> 정했다.\"",
+                options: ["미리", "미리서"],
+                answer: 0,
+                explanation: "'미리'가 올바른 부사입니다."
+            },
+
+            // 속담 퀴즈
+            {
+                category: "속담",
+                type: "idiom",
+                question: "빈칸에 들어갈 동물은?<br>\"<span class='text-emerald-600'>[ ? ]</span>도 두들겨 보고 건너라\"",
+                options: ["돌다리", "징검다리", "나무다리"],
+                answer: 0,
+                explanation: "아무리 잘 아는 일이라도 주의하여 확인하라는 뜻의 속담이에요!"
+            },
+            {
+                category: "속담",
+                type: "idiom",
+                question: "다음 속담의 빈칸은?<br>\"티끌 모아 <span class='text-emerald-600'>[ ? ]</span>\"",
+                options: ["태산", "바다", "우주"],
+                answer: 0,
+                explanation: "아주 작은 것이라도 모이면 큰 것이 된다는 뜻이에요."
+            },
+            {
+                category: "속담",
+                type: "idiom",
+                question: "속담 완성하기!<br>\"가는 말이 고와야 <span class='text-emerald-600'>[ ? ]</span> 고브다\"",
+                options: ["오는 말이", "듣는 말이", "하는 말이"],
+                answer: 0,
+                explanation: "내가 남에게 잘 해주어야 남도 나에게 잘 해준다는 뜻이에요!"
+            },
+            {
+                category: "속담",
+                type: "idiom",
+                question: "다음 속담의 빈칸은?<br>\"<span class='text-emerald-600'>[ ? ]</span> 잃고 외양간 고친다\"",
+                options: ["소", "말", "돼지"],
+                answer: 0,
+                explanation: "이미 일을 그르친 뒤에는 뉘우쳐도 소용없다는 말이에요."
+            },
+            {
+                category: "속담",
+                type: "idiom",
+                question: "무슨 뜻일까요?<br>\"등잔 밑이 <span class='text-emerald-600'>[ ? ]</span>\"",
+                options: ["어둡다", "밝다", "뜨겁다"],
+                answer: 0,
+                explanation: "가까이 있는 것을 오히려 알아채기 어렵다는 뜻이에요."
+            },
+
+            // 순우리말 & 사자성어 퀴즈
+            {
+                category: "순우리말",
+                type: "spelling",
+                question: "'가람'은 무슨 뜻일까요?",
+                options: ["강 (River)", "산 (Mountain)", "구름 (Cloud)"],
+                answer: 0,
+                explanation: "'가람'은 '강'을 뜻하는 예쁜 순우리말이에요!"
+            },
+            {
+                category: "순우리말",
+                type: "spelling",
+                question: "'미르'는 어떤 신비한 동물을 뜻할까요?",
+                options: ["용 (Dragon)", "호랑이 (Tiger)", "독수리 (Eagle)"],
+                answer: 0,
+                explanation: "'미르'는 '용'을 뜻하는 우리의 옛 순우리말 단어입니다."
+            },
+            {
+                category: "사자성어",
+                type: "idiom",
+                question: "낮에는 일하고 밤에는 글을 읽는다는 뜻으로, 열심히 공부하는 것은?",
+                options: ["주경야독", "일석이조", "동문서답"],
+                answer: 0,
+                explanation: "낮 주(晝), 밭갈 경(耕), 밤 야(夜), 읽을 독(讀)으로 어려운 환경에서도 공부하는 모습입니다."
+            }
+        ];
+
+        // 게임 상태 변수
+        let selectedCategory = 'all';
+        let currentQuestions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let correctAnswersCount = 0;
+        let wrongAnswersCount = 0;
+        let isAnswered = false;
+
+        // 카테고리 선택 기능
+        function selectCategory(cat) {
+            playSound('click');
+            selectedCategory = cat;
+            
+            // 버튼 스타일 업데이트
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.classList.add('opacity-70');
+                btn.classList.remove('ring-4', 'ring-purple-200', 'ring-blue-200', 'ring-emerald-200');
+            });
+
+            const activeBtn = document.getElementById(`cat-${cat}`);
+            activeBtn.classList.remove('opacity-70');
+            activeBtn.classList.add('ring-4', cat === 'all' ? 'ring-purple-200' : cat === 'spelling' ? 'ring-blue-200' : 'ring-emerald-200');
+        }
+
+        // 게임 시작
+        function startGame() {
+            playSound('click');
+            
+            // 문제 필터링
+            if (selectedCategory === 'all') {
+                currentQuestions = [...quizDatabase];
+            } else {
+                currentQuestions = quizDatabase.filter(q => q.type === selectedCategory);
+            }
+
+            // 배열 랜덤 섞기 (셔플)
+            currentQuestions.sort(() => Math.random() - 0.5);
+
+            // 최대 10문제만 선택
+            if (currentQuestions.length > 10) {
+                currentQuestions = currentQuestions.slice(0, 10);
+            }
+
+            // 초기화
+            currentQuestionIndex = 0;
+            score = 0;
+            correctAnswersCount = 0;
+            wrongAnswersCount = 0;
+
+            // 화면 전환
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('quiz-screen').classList.remove('hidden');
+
+            document.getElementById('total-questions-num').innerText = currentQuestions.length;
+            document.getElementById('score-display').innerText = '0';
+
+            loadQuestion();
+        }
+
+        // 문제 로드
+        function loadQuestion() {
+            isAnswered = false;
+            const q = currentQuestions[currentQuestionIndex];
+
+            // 진행 상태 업데이트
+            document.getElementById('current-question-num').innerText = currentQuestionIndex + 1;
+            const progressPercent = ((currentQuestionIndex + 1) / currentQuestions.length) * 100;
+            document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+
+            // 질문 및 카테고리 설정
+            document.getElementById('question-category').innerText = q.category;
+            document.getElementById('question-text').innerHTML = q.question;
+
+            // 피드백 박스 숨기기
+            const feedbackBox = document.getElementById('feedback-box');
+            feedbackBox.classList.add('hidden');
+            feedbackBox.className = "hidden mt-6 p-4 rounded-2xl text-center border-2 card-pop";
+
+            // 보기 버튼 생성
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            const colors = [
+                'bg-rose-400 hover:bg-rose-500 border-rose-600 text-white',
+                'bg-sky-400 hover:bg-sky-500 border-sky-600 text-white',
+                'bg-amber-400 hover:bg-amber-500 border-amber-600 text-white',
+                'bg-emerald-400 hover:bg-emerald-500 border-emerald-600 text-white'
+            ];
+
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `btn-choice w-full py-4 px-6 rounded-2xl text-xl sm:text-2xl font-bold border-b-4 transition-transform ${colors[idx % colors.length]}`;
+                btn.innerHTML = `<span class="bg-white/30 text-white rounded-full px-3 py-1 mr-2 text-lg">${idx + 1}</span> ${opt}`;
+                btn.onclick = () => checkAnswer(idx, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        // 정답 확인
+        function checkAnswer(selectedIndex, selectedBtn) {
+            if (isAnswered) return;
+            isAnswered = true;
+
+            const q = currentQuestions[currentQuestionIndex];
+            const feedbackBox = document.getElementById('feedback-box');
+            const feedbackResult = document.getElementById('feedback-result');
+            const feedbackExp = document.getElementById('feedback-explanation');
+            const quizCard = document.getElementById('quiz-screen');
+
+            // 모든 선택 버튼 무효화
+            const buttons = document.querySelectorAll('.btn-choice');
+
+            if (selectedIndex === q.answer) {
+                // 정답!
+                playSound('correct');
+                score += 10;
+                correctAnswersCount++;
+                document.getElementById('score-display').innerText = score;
+
+                selectedBtn.classList.add('ring-4', 'ring-green-300', 'scale-105');
+                feedbackBox.classList.remove('hidden');
+                feedbackBox.classList.add('bg-green-100', 'border-green-300', 'text-green-800');
+                feedbackResult.innerHTML = '🎉 <span class="text-green-600">정답입니다! 잘했어요!</span> 🎉';
+                
+                // 폭죽 효과
+                confetti({
+                    particleCount: 50,
+                    spread: 60,
+                    origin: { y: 0.7 }
+                });
+
+            } else {
+                // 오답!
+                playSound('wrong');
+                wrongAnswersCount++;
+
+                selectedBtn.classList.add('opacity-50');
+                quizCard.classList.add('shake');
+                setTimeout(() => quizCard.classList.remove('shake'), 500);
+
+                // 정답 버튼 표시
+                buttons[q.answer].classList.add('ring-4', 'ring-green-400', 'scale-105');
+
+                feedbackBox.classList.remove('hidden');
+                feedbackBox.classList.add('bg-red-100', 'border-red-300', 'text-red-800');
+                feedbackResult.innerHTML = '💡 <span class="text-red-600">아쉬워요! 다시 확인해봐요.</span>';
+            }
+
+            feedbackExp.innerText = q.explanation;
+        }
+
+        // 다음 문제 진행
+        function nextQuestion() {
+            playSound('click');
+            currentQuestionIndex++;
+
+            if (currentQuestionIndex < currentQuestions.length) {
+                loadQuestion();
+            } else {
+                showResult();
+            }
+        }
+
+        // 결과 화면 출력
+        function showResult() {
+            document.getElementById('quiz-screen').classList.add('hidden');
+            const resultScreen = document.getElementById('result-screen');
+            resultScreen.classList.remove('hidden');
+
+            const finalScoreElem = document.getElementById('final-score');
+            const correctCountElem = document.getElementById('correct-count');
+            const wrongCountElem = document.getElementById('wrong-count');
+            const praiseMsgElem = document.getElementById('praise-message');
+            const emojiElem = document.getElementById('result-emoji');
+
+            // 점수 계산 (100점 만점 환산)
+            const calculatedScore = Math.round((correctAnswersCount / currentQuestions.length) * 100);
+
+            finalScoreElem.innerText = calculatedScore;
+            correctCountElem.innerText = correctAnswersCount;
+            wrongCountElem.innerText = wrongAnswersCount;
+
+            // 칭찬 메세지 설정
+            if (calculatedScore === 100) {
+                emojiElem.innerText = '👑';
+                praiseMsgElem.innerHTML = '🌟 완벽해요! 세종대왕님도 울고 갈 최고의 <span class="text-purple-600 font-extrabold">우리말 대박사님</span>이시네요! 🌟';
+                playSound('win');
+                // 대형 폭죽 효과
+                confetti({
+                    particleCount: 150,
+                    spread: 100,
+                    origin: { y: 0.6 }
+                });
+            } else if (calculatedScore >= 80) {
+                emojiElem.innerText = '🥇';
+                praiseMsgElem.innerText = '대단한 실력이에요! 조금만 더 하면 만점도 문제없겠어요! 👍';
+                playSound('win');
+            } else if (calculatedScore >= 60) {
+                emojiElem.innerText = '🥈';
+                praiseMsgElem.innerText = '참 잘했어요! 우리말 표현을 많이 알고 있네요! 😊';
+            } else {
+                emojiElem.innerText = '🌱';
+                praiseMsgElem.innerText = '차근차근 연습해보아요! 다시 도전해보면 더 높은 점수를 받을 수 있어요! 💪';
+            }
+        }
+
+        // 게임 다시하기
+        function restartGame() {
+            startGame();
+        }
+
+        // 메인 화면으로 이동
+        function goHome() {
+            playSound('click');
+            document.getElementById('quiz-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
